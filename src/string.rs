@@ -2,6 +2,7 @@ use ::core::str::Utf8Error;
 
 use ::alloc::ffi::CString;
 use ::alloc::string::String;
+use ::alloc::vec::Vec;
 
 use crate::*;
 

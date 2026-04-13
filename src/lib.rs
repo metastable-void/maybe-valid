@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "alloc")]
 extern crate alloc;
 
 mod no_std;
@@ -345,16 +346,16 @@ impl<'a, V: Validated + ?Sized, P: ?Sized> MaybeValidRef<'a, V, P> {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'a, V, P> MaybeValidRef<'a, V, P>
 where
-    V: Validated + ToOwned + ?Sized,
+    V: Validated + ::alloc::borrow::ToOwned + ?Sized,
     V::Owned: Validated<InvalidReason = V::InvalidReason>,
-    P: ToOwned + ?Sized,
-    V::InvalidReason: Clone,
+    P: ::alloc::borrow::ToOwned + ?Sized,
 {
     /// Produces an owned version of this outcome by cloning the
     /// borrowed `V` (or `P`) into its owned form.
-    pub fn to_owned(self) -> MaybeValidOwned<V::Owned, P::Owned> {
+    pub fn into_owned(self) -> MaybeValidOwned<V::Owned, P::Owned> {
         match self {
             MaybeValidRef::Valid(v) => MaybeValidOwned::Valid(v.to_owned()),
             MaybeValidRef::Invalid(p, r) => MaybeValidOwned::Invalid(p.to_owned(), r),
