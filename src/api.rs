@@ -291,7 +291,8 @@ impl<'a, V: Validated + ?Sized, P: ?Sized> MaybeValidRef<'a, V, P> {
     ///
     /// Useful when a caller holds a `MaybeValidRef` by value but needs
     /// to inspect it without consuming it. The returned value borrows
-    /// the `InvalidReason` from `self`.
+    /// the precursor/validated references from `self` and clones the
+    /// `InvalidReason` on the invalid path.
     pub fn as_ref(&self) -> MaybeValidRef<'_, V, P>
     where
         V::InvalidReason: Clone,
