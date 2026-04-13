@@ -23,6 +23,13 @@ fn utf8_as_validated_valid_and_invalid() {
     let (precursor, reason) = invalid.invalid_parts().expect("expected invalid");
     assert_eq!(precursor, invalid_bytes);
     assert_eq!(reason.valid_up_to(), 0);
+
+    let partial_invalid_bytes: &[u8] = b"a\xff";
+    let partial_invalid: MaybeValidRef<'_, str, [u8]> = partial_invalid_bytes.as_validated();
+    let partial_reason = partial_invalid
+        .invalid_reason()
+        .expect("expected invalid utf-8");
+    assert_eq!(partial_reason.valid_up_to(), 1);
 }
 
 #[test]
@@ -53,6 +60,16 @@ fn cstr_as_validated_reasons() {
             assert_eq!(reason, CStrInvalidReason::InteriorNul { position: 1 });
         }
     }
+
+    let interior_nul_later: &[u8] = b"ab\0cd\0";
+    let interior_later: MaybeValidRef<'_, CStr, [u8]> = interior_nul_later.as_validated();
+    match interior_later {
+        MaybeValidRef::Valid(_) => panic!("expected interior nul"),
+        MaybeValidRef::Invalid(bytes, reason) => {
+            assert_eq!(bytes, interior_nul_later);
+            assert_eq!(reason, CStrInvalidReason::InteriorNul { position: 2 });
+        }
+    }
 }
 
 #[test]
@@ -64,6 +81,13 @@ fn char_into_validated() {
     let invalid: MaybeValidOwned<char, u32> = 0x11_0000_u32.into_validated();
     assert!(invalid.is_invalid());
     assert_eq!(invalid.invalid_precursor(), Some(0x11_0000_u32));
+
+    let max_valid: MaybeValidOwned<char, u32> = 0x10_FFFF_u32.into_validated();
+    assert_eq!(max_valid.valid(), Some('\u{10FFFF}'));
+
+    let surrogate_invalid: MaybeValidOwned<char, u32> = 0xD800_u32.into_validated();
+    assert!(surrogate_invalid.is_invalid());
+    assert_eq!(surrogate_invalid.invalid_precursor(), Some(0xD800_u32));
 }
 
 macro_rules! test_nonzero {
@@ -119,6 +143,12 @@ fn maybe_valid_ref_methods_and_into_owned() {
     assert!(matches!(valid_borrowed, MaybeValidRef::Valid("ok")));
     let valid_result = valid.into_result();
     assert_eq!(valid_result, Ok("ok"));
+    let valid_again: MaybeValidRef<'_, str, [u8]> = valid_bytes.as_validated();
+    assert_eq!(valid_again.invalid_precursor(), None);
+    let valid_again: MaybeValidRef<'_, str, [u8]> = valid_bytes.as_validated();
+    assert_eq!(valid_again.invalid_reason(), None);
+    let valid_again: MaybeValidRef<'_, str, [u8]> = valid_bytes.as_validated();
+    assert_eq!(valid_again.invalid_parts(), None);
 
     let invalid_bytes: &[u8] = &[0xff];
     let invalid: MaybeValidRef<'_, str, [u8]> = invalid_bytes.as_validated();
@@ -127,6 +157,20 @@ fn maybe_valid_ref_methods_and_into_owned() {
         .into_result_reason_only()
         .expect_err("expected invalid");
     assert_eq!(invalid_reason.valid_up_to(), 0);
+    let invalid_again: MaybeValidRef<'_, str, [u8]> = invalid_bytes.as_validated();
+    assert_eq!(invalid_again.invalid_precursor(), Some(invalid_bytes));
+    let invalid_again: MaybeValidRef<'_, str, [u8]> = invalid_bytes.as_validated();
+    assert_eq!(
+        invalid_again
+            .invalid_reason()
+            .expect("expected invalid reason")
+            .valid_up_to(),
+        0
+    );
+    let invalid_again: MaybeValidRef<'_, str, [u8]> = invalid_bytes.as_validated();
+    let (parts_bytes, parts_reason) = invalid_again.invalid_parts().expect("expected parts");
+    assert_eq!(parts_bytes, invalid_bytes);
+    assert_eq!(parts_reason.valid_up_to(), 0);
 
     let invalid_owned = invalid.into_owned();
     match invalid_owned {
@@ -141,6 +185,18 @@ fn maybe_valid_ref_methods_and_into_owned() {
 #[cfg(feature = "alloc")]
 #[test]
 fn maybe_valid_owned_methods() {
+    let valid: MaybeValidOwned<String, Vec<u8>> = b"ok".to_vec().into_validated();
+    let valid_ref = valid.as_ref();
+    match valid_ref {
+        MaybeValidRef::Valid(s) => assert_eq!(s.as_str(), "ok"),
+        MaybeValidRef::Invalid(_, _) => panic!("expected valid"),
+    }
+    let valid_again: MaybeValidOwned<String, Vec<u8>> = b"ok".to_vec().into_validated();
+    assert_eq!(
+        valid_again.into_result_reason_only(),
+        Ok(String::from("ok"))
+    );
+
     let invalid: MaybeValidOwned<String, Vec<u8>> = vec![0xff].into_validated();
     assert!(invalid.is_invalid());
     assert!(!invalid.is_valid());
@@ -148,7 +204,32 @@ fn maybe_valid_owned_methods() {
     let invalid_ref = invalid.as_ref();
     assert!(invalid_ref.is_invalid());
 
-    let (bytes, reason) = invalid.into_result().expect_err("expected invalid");
+    let invalid_for_reason: MaybeValidOwned<String, Vec<u8>> = vec![0xff].into_validated();
+    assert_eq!(
+        invalid_for_reason
+            .invalid_reason()
+            .expect("expected invalid reason")
+            .valid_up_to(),
+        0
+    );
+
+    let invalid_for_parts: MaybeValidOwned<String, Vec<u8>> = vec![0xff].into_validated();
+    let (parts_bytes, parts_reason) = invalid_for_parts
+        .invalid_parts()
+        .expect("expected invalid parts");
+    assert_eq!(parts_bytes, vec![0xff]);
+    assert_eq!(parts_reason.valid_up_to(), 0);
+
+    let invalid_for_reason_only: MaybeValidOwned<String, Vec<u8>> = vec![0xff].into_validated();
+    let reason_only = invalid_for_reason_only
+        .into_result_reason_only()
+        .expect_err("expected invalid");
+    assert_eq!(reason_only.valid_up_to(), 0);
+
+    let invalid_for_result: MaybeValidOwned<String, Vec<u8>> = vec![0xff].into_validated();
+    let (bytes, reason) = invalid_for_result
+        .into_result()
+        .expect_err("expected invalid");
     assert_eq!(bytes, vec![0xff]);
     assert_eq!(reason.valid_up_to(), 0);
 }
