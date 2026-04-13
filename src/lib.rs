@@ -51,13 +51,13 @@ pub use no_std::*;
 ///   existing binding.
 /// - [`IntoValidated::into_validated`] returns the owned precursor
 ///   alongside the `InvalidReason` in the invalid branch of
-///   [`MaybeValid`].
+///   [`MaybeValidOwned`].
 ///
 /// Keeping `InvalidReason` precursor-free allows a single
 /// `Validated` impl to serve both borrowing and owning conversions
 /// without duplicating data or forcing a clone on the owning path.
 ///
-/// [`MaybeValid`]: crate::MaybeValid
+/// [`MaybeValidOwned`]: crate::MaybeValidOwned
 ///
 /// # Contract
 ///
@@ -91,9 +91,8 @@ pub use no_std::*;
 /// ```
 /// # use maybe_valid::Validated;
 /// # use std::str::Utf8Error;
-/// impl Validated for str {
-///     type InvalidReason = Utf8Error;
-/// }
+/// fn assert_validated_utf8<T: Validated<InvalidReason = Utf8Error> + ?Sized>() {}
+/// assert_validated_utf8::<str>();
 /// ```
 ///
 /// `Utf8Error` carries a `valid_up_to: usize` and an `error_len:
@@ -123,13 +122,10 @@ pub use no_std::*;
 /// A refinement of an integer type:
 ///
 /// ```
-/// # use maybe_valid::Validated;
+/// # use maybe_valid::{Validated, ZeroReason};
 /// # use std::num::NonZeroU32;
-/// pub struct ZeroReason;
-///
-/// impl Validated for NonZeroU32 {
-///     type InvalidReason = ZeroReason;
-/// }
+/// fn assert_nonzero_reason<T: Validated<InvalidReason = ZeroReason>>() {}
+/// assert_nonzero_reason::<NonZeroU32>();
 /// ```
 ///
 /// # When *not* to implement `Validated`
@@ -221,7 +217,8 @@ pub trait Validated {
 /// ```
 /// # use maybe_valid::{AsValidated, MaybeValidRef};
 /// let bytes: &[u8] = b"hello";
-/// match bytes.as_validated::<str>() {
+/// let validated: MaybeValidRef<'_, str, [u8]> = bytes.as_validated();
+/// match validated {
 ///     MaybeValidRef::Valid(s) => assert_eq!(s, "hello"),
 ///     MaybeValidRef::Invalid(bytes, reason) => {
 ///         eprintln!(
@@ -390,7 +387,8 @@ where
 /// ```
 /// # use maybe_valid::{IntoValidated, MaybeValidOwned};
 /// let bytes = vec![0xff, 0xfe];
-/// match bytes.into_validated::<String>() {
+/// let validated: MaybeValidOwned<String, Vec<u8>> = bytes.into_validated();
+/// match validated {
 ///     MaybeValidOwned::Valid(s) => println!("got: {}", s),
 ///     MaybeValidOwned::Invalid(bytes, reason) => {
 ///         // `bytes` is the original Vec<u8>, moved back to us.
@@ -578,7 +576,8 @@ impl<V: Validated, P> MaybeValidOwned<V, P> {
 /// ```
 /// # use maybe_valid::{AsValidated, MaybeValidRef};
 /// let bytes: &[u8] = b"hello";
-/// match bytes.as_validated::<str>() {
+/// let validated: MaybeValidRef<'_, str, [u8]> = bytes.as_validated();
+/// match validated {
 ///     MaybeValidRef::Valid(s) => {
 ///         assert_eq!(s, "hello");
 ///     }
@@ -677,7 +676,8 @@ pub trait AsValidated<V: Validated + ?Sized> {
 /// ```
 /// # use maybe_valid::{IntoValidated, MaybeValidOwned};
 /// let bytes = vec![0xff, 0xfe, 0xfd];
-/// match bytes.into_validated::<String>() {
+/// let validated: MaybeValidOwned<String, Vec<u8>> = bytes.into_validated();
+/// match validated {
 ///     MaybeValidOwned::Valid(s) => {
 ///         println!("got string: {}", s);
 ///     }
@@ -700,7 +700,8 @@ pub trait AsValidated<V: Validated + ?Sized> {
 /// # use std::num::NonZeroU32;
 /// let candidates = [1u32, 0, 42];
 /// for n in candidates {
-///     match n.into_validated::<NonZeroU32>() {
+///     let validated: MaybeValidOwned<NonZeroU32, u32> = n.into_validated();
+///     match validated {
 ///         MaybeValidOwned::Valid(nz) => println!("{} is nonzero", nz),
 ///         MaybeValidOwned::Invalid(original, _) => {
 ///             assert_eq!(original, 0);
