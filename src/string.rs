@@ -4,7 +4,7 @@ use ::alloc::ffi::CString;
 use ::alloc::string::String;
 use ::alloc::vec::Vec;
 
-use crate::*;
+use crate::{CStrInvalidReason, IntoValidated, MaybeValidOwned, Validated};
 
 impl Validated for String {
     type InvalidReason = Utf8Error;

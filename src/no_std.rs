@@ -8,7 +8,7 @@ use ::core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize,
 };
 
-use crate::*;
+use crate::{AsValidated, IntoValidated, MaybeValidOwned, MaybeValidRef, Validated};
 
 /// Returned on the invalid path when validating an integer as a
 /// corresponding `NonZero*` type.
