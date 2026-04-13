@@ -5,6 +5,8 @@ edition = "2021"
 
 license = "Apache-2.0 OR MPL-2.0"
 
+description = "Traits and outcome enums for structural validation/refinement conversions"
+
 repository = "https://github.com/metastable-void/maybe-valid"
 readme = "README.md"
 
