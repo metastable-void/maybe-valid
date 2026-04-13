@@ -16,14 +16,22 @@ use crate::*;
 pub struct ZeroReason;
 
 /// Returned on the invalid path when validating bytes as `CStr` or
-/// `CString`. Indicates where a nul byte was missing or misplaced.
+/// `CString`.
+///
+/// `CStr` borrow validation can report specific positional reasons.
+/// `CString` owned validation in `alloc` mode may only report
+/// `Unspecified`, because `FromVecWithNulError` does not expose
+/// detailed failure information.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CStrInvalidReason {
     /// No nul terminator found within the byte slice.
     MissingNul,
     /// An interior nul byte was found at this position.
     InteriorNul { position: usize },
-    /// Unspecified reason
+    /// Unspecified reason.
+    ///
+    /// Used when validating into `CString`, where the standard library
+    /// does not expose more specific diagnostics.
     Unspecified,
 }
 

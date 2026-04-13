@@ -603,16 +603,15 @@ impl<V: Validated, P> MaybeValidOwned<V, P> {
 /// typically also be validated by ownership. Both route through the
 /// same [`Validated`] target type and share its [`InvalidReason`].
 ///
-/// Paired borrowed/owned validated types — such as [`str`] / [`String`]
-/// or [`CStr`] / [`CString`] — should share an `InvalidReason` so that
-/// [`MaybeValidRef::into_owned`] can convert between them without
+/// Paired borrowed/owned validated types — such as [`str`] / `String`
+/// or [`CStr`] / `CString` — should share an `InvalidReason` so that
+/// `MaybeValidRef::into_owned` (when the `alloc` feature is enabled) can convert between them without
 /// requiring a reason-type conversion.
 ///
 /// [`IntoValidated`]: crate::IntoValidated
 /// [`Validated`]: crate::Validated
 /// [`str`]: prim@str
 /// [`CStr`]: core::ffi::CStr
-/// [`MaybeValidRef::into_owned`]: crate::MaybeValidRef::into_owned
 pub trait AsValidated<V: Validated + ?Sized> {
     /// Borrows `self` as a validated `V`, if valid.
     ///
@@ -718,10 +717,9 @@ pub trait AsValidated<V: Validated + ?Sized> {
 /// target type and share its [`InvalidReason`]. Paired borrowed/owned
 /// validated types should share an `InvalidReason` so that outcomes
 /// can round-trip between the two via
-/// [`MaybeValidRef::into_owned`].
+/// `MaybeValidRef::into_owned` (when the `alloc` feature is enabled).
 ///
 /// [`Validated`]: crate::Validated
-/// [`MaybeValidRef::into_owned`]: crate::MaybeValidRef::into_owned
 ///
 /// # Relationship to `TryFrom`
 ///
