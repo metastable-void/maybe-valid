@@ -373,6 +373,8 @@ where
 /// # Examples
 ///
 /// ```
+/// # #[cfg(feature = "alloc")]
+/// # {
 /// # use maybe_valid::{IntoValidated, MaybeValidOwned};
 /// let bytes = vec![0xff, 0xfe];
 /// let validated: MaybeValidOwned<String, Vec<u8>> = bytes.into_validated();
@@ -384,6 +386,7 @@ where
 ///         eprintln!("invalid at byte {}", reason.valid_up_to());
 ///     }
 /// }
+/// # }
 /// ```
 ///
 /// # Construction
@@ -661,6 +664,8 @@ pub trait AsValidated<V: Validated + ?Sized> {
 /// without a clone:
 ///
 /// ```
+/// # #[cfg(feature = "alloc")]
+/// # {
 /// # use maybe_valid::{IntoValidated, MaybeValidOwned};
 /// let bytes = vec![0xff, 0xfe, 0xfd];
 /// let validated: MaybeValidOwned<String, Vec<u8>> = bytes.into_validated();
@@ -678,6 +683,7 @@ pub trait AsValidated<V: Validated + ?Sized> {
 ///         );
 ///     }
 /// }
+/// # }
 /// ```
 ///
 /// Converting `u32` into `NonZeroU32`:
